@@ -18,10 +18,19 @@ export default function Chat({ onSendMessage, isGenerating, initialInput = '', i
   const [canGenerate, setCanGenerate] = useState(false); // Track if generation is possible
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
+  // Track the last submission source to prevent unwanted input syncing
+  const lastSubmitSourceRef = useRef('text'); // 'text' | 'file' | 'image'
 
   // Sync with parent state changes
   useEffect(() => {
-    setInput(initialInput);
+    // Only sync initialInput into the text area for text-originated submissions
+    // If the last submission came from file/image, suppress this one update
+    if (lastSubmitSourceRef.current === 'text') {
+      setInput(initialInput);
+    } else {
+      // Reset to allow future legitimate updates (e.g., history selection)
+      lastSubmitSourceRef.current = 'text';
+    }
   }, [initialInput]);
 
   useEffect(() => {
@@ -31,7 +40,8 @@ export default function Chat({ onSendMessage, isGenerating, initialInput = '', i
   const handleSubmit = (e) => {
     e.preventDefault();
     if (input.trim() && !isGenerating) {
-      onSendMessage(input.trim(), chartType);
+      lastSubmitSourceRef.current = 'text';
+      onSendMessage(input.trim(), chartType, 'text');
       // Don't clear input - keep it for user reference
     }
   };
@@ -113,7 +123,9 @@ export default function Chat({ onSendMessage, isGenerating, initialInput = '', i
 
   const handleFileGenerate = () => {
     if (fileContent && !isGenerating) {
-      onSendMessage(fileContent, chartType);
+      // Mark source as file to avoid syncing file content into text input
+      lastSubmitSourceRef.current = 'file';
+      onSendMessage(fileContent, chartType, 'file');
       // Reset canGenerate state after initiating generation
       setCanGenerate(false);
     }
@@ -132,6 +144,8 @@ export default function Chat({ onSendMessage, isGenerating, initialInput = '', i
 
   const handleImageSubmit = () => {
     if (selectedImage && !isGenerating) {
+      // Mark source as image to avoid syncing into text input
+      lastSubmitSourceRef.current = 'image';
       // 生成针对图片的提示词
       const imagePrompt = generateImagePrompt(chartType);
 
@@ -142,7 +156,7 @@ export default function Chat({ onSendMessage, isGenerating, initialInput = '', i
         chartType
       };
 
-      onSendMessage(messageData, chartType);
+      onSendMessage(messageData, chartType, 'image');
       // Reset canGenerate state after initiating generation
       setCanGenerate(false);
     }

@@ -160,7 +160,7 @@ export default function Home() {
   };
 
   // Handle sending a message (single-turn)
-  const handleSendMessage = async (userMessage, chartType = 'auto') => {
+  const handleSendMessage = async (userMessage, chartType = 'auto', sourceType = 'text') => {
     const usePassword = typeof window !== 'undefined' && localStorage.getItem('smart-excalidraw-use-password') === 'true';
     const accessPassword = typeof window !== 'undefined' ? localStorage.getItem('smart-excalidraw-access-password') : '';
 
@@ -279,20 +279,16 @@ export default function Home() {
       setGeneratedCode(optimizedCode);
       tryParseAndApply(optimizedCode);
 
-      // Save to history (only for text input)
-      if (userMessage && optimizedCode) {
-        // Ensure userInput is always a string for history storage
-        const userInputText = typeof userMessage === 'object'
-          ? (userMessage.text || '图片上传生成')
-          : userMessage;
-
+      // Save to history only for text input mode
+      if (sourceType === 'text' && userMessage && optimizedCode) {
+        const userInputText = typeof userMessage === 'object' ? (userMessage.text || '') : userMessage;
         historyManager.addHistory({
           chartType,
           userInput: userInputText,
           generatedCode: optimizedCode,
           config: {
-            name: config.name || config.type,
-            model: config.model
+            name: config?.name || config?.type,
+            model: config?.model
           }
         });
       }
